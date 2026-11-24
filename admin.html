@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Lucky200 Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Toast Notification -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-30 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 font-black text-lg flex items-center justify-center shadow-md">
+          A
+        </div>
+        <div>
+          <span class="font-extrabold text-lg tracking-tight text-white flex items-center gap-2">
+            Lucky<span class="text-emerald-400">200</span> <span class="text-xs bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">Admin Control Center</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i> View Public Site
+        </a>
+        <div id="admin-user-info" class="flex items-center gap-2">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Login Gate (Shown if not logged in as Admin) -->
+  <div id="admin-login-view" class="flex-1 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-xl border border-slate-200 text-center space-y-6">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-2xl shadow-sm">
+        <i data-lucide="shield-alert" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-black text-slate-900">Admin Authentication</h2>
+        <p class="text-xs text-slate-500 mt-1">Please enter your administrative credentials to continue.</p>
+        <p class="text-[11px] text-amber-700 mt-2 bg-amber-50 p-2 rounded-lg border border-amber-200">
+          Default Admin: <strong>0906619022</strong> | Password: <strong>admin123</strong>
+        </p>
+      </div>
+
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Admin Phone</label>
+          <input id="admin-phone" type="tel" required value="0906619022" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+          <input id="admin-pass" type="password" required value="admin123" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-md transition active:scale-95">
+          Sign In to Admin Panel
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Main Dashboard (Shown when authenticated) -->
+  <div id="admin-dashboard-view" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- KPI Metric Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-[10px] font-bold uppercase text-slate-400">Total Pool</span>
+        <div class="text-2xl font-black text-slate-900 mt-1">200</div>
+        <span class="text-[11px] text-slate-500">Fixed Numbers</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-[10px] font-bold uppercase text-emerald-600">Available</span>
+        <div id="kpi-available" class="text-2xl font-black text-emerald-600 mt-1">--</div>
+        <span class="text-[11px] text-slate-500">Open Tickets</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm bg-amber-50/40">
+        <span class="text-[10px] font-bold uppercase text-amber-700">Pending Review</span>
+        <div id="kpi-pending" class="text-2xl font-black text-amber-600 mt-1">--</div>
+        <span class="text-[11px] text-amber-700 font-semibold">Needs Approval</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-[10px] font-bold uppercase text-slate-700">Approved</span>
+        <div id="kpi-approved" class="text-2xl font-black text-slate-900 mt-1">--</div>
+        <span class="text-[11px] text-slate-500">Confirmed Paid</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm bg-emerald-50/30">
+        <span class="text-[10px] font-bold uppercase text-emerald-700">Total Revenue</span>
+        <div id="kpi-revenue" class="text-2xl font-black text-emerald-700 mt-1">-- ETB</div>
+        <span class="text-[11px] text-emerald-600 font-semibold">Verified</span>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-[10px] font-bold uppercase text-slate-500">Participants</span>
+        <div id="kpi-users" class="text-2xl font-black text-slate-800 mt-1">--</div>
+        <span class="text-[11px] text-slate-500">Registered Users</span>
+      </div>
+    </div>
+
+    <!-- Lucky Draw Control Center Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-emerald-900/60 shadow-xl space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30 uppercase">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Lucky Draw Control Center
+          </div>
+          <h3 class="text-2xl font-black mt-2">
+            3 Grand Winners Draw (5,000 ETB, 3,000 ETB, 2,000 ETB)
+          </h3>
+          <p class="text-xs text-slate-300 mt-1">
+            Draws 3 distinct winning numbers from verified tickets. Automatically runs when all 200 numbers are approved, or can be triggered manually below.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button onclick="handleTriggerDraw()" id="btn-run-draw" class="py-3 px-5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black rounded-xl shadow-lg shadow-amber-500/30 transition active:scale-95 flex items-center gap-2 text-sm">
+            <i data-lucide="dice-5" class="w-5 h-5"></i>
+            <span>Run Lucky Draw Now</span>
+          </button>
+          <button onclick="handleResetDraw()" id="btn-reset-draw" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition flex items-center gap-2 text-xs">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            <span>Reset Draw</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Winners Display -->
+      <div id="admin-winners-box" class="pt-2">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <button onclick="switchTab('pending')" id="tab-btn-pending" class="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white transition flex items-center gap-2">
+        <i data-lucide="inbox" class="w-4 h-4"></i>
+        <span>Submissions & Approvals</span>
+        <span id="tab-pending-badge" class="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[10px]">0</span>
+      </button>
+      <button onclick="switchTab('settings')" id="tab-btn-settings" class="px-4 py-2 text-xs font-bold rounded-xl bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 transition flex items-center gap-2">
+        <i data-lucide="sliders" class="w-4 h-4"></i>
+        <span>Raffle & Cash Settings</span>
+      </button>
+    </div>
+
+    <!-- Tab 1: Submissions Management Table -->
+    <div id="view-submissions" class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-slate-900 text-base">Raffle Submissions Queue</h3>
+          <p class="text-xs text-slate-500">Review FT codes, Telebirr txn IDs, and Cash payments to approve or reject tickets.</p>
+        </div>
+        <button onclick="loadAdminData()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+          <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i> Refresh
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+            <tr>
+              <th class="py-3 px-4">Ticket</th>
+              <th class="py-3 px-4">Participant</th>
+              <th class="py-3 px-4">Payment Channel</th>
+              <th class="py-3 px-4">FT / Txn Reference</th>
+              <th class="py-3 px-4">Receipt Proof</th>
+              <th class="py-3 px-4">Submitted At</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="submissions-tbody" class="divide-y divide-slate-100">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Settings & Deadline Editor -->
+    <div id="view-settings" class="hidden bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-2xl">
+      <h3 class="font-bold text-slate-900 text-lg mb-1">Raffle Configuration & Payment Info</h3>
+      <p class="text-xs text-slate-500 mb-6">Modify bank account numbers, in-person cash coordinator, deadline, and prizes.</p>
+
+      <form onsubmit="handleSaveSettings(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Raffle Deadline Date & Time</label>
+          <input id="set-deadline" type="datetime-local" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <span class="text-[11px] text-slate-400 mt-1 block">Controls the live countdown timer on the user home page.</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">CBE Account Number</label>
+            <input id="set-cbe" type="text" required class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Telebirr Phone Number</label>
+            <input id="set-telebirr" type="text" required class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-200">
+          <div>
+            <label class="block text-xs font-bold text-emerald-950 uppercase mb-1">Cash Coordinator Name</label>
+            <input id="set-cash-name" type="text" required value="Tegegn Wukianos" class="w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-emerald-950 uppercase mb-1">Cash Coordinator Phone</label>
+            <input id="set-cash-phone" type="text" required value="0952458502" class="w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ticket Fee (ETB)</label>
+          <input id="set-price" type="text" required class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <button type="submit" class="py-3 px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition active:scale-95 flex items-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i> Save Settings
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Receipt Image Modal Lightbox -->
+  <div id="lightbox-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="relative max-w-2xl w-full bg-white rounded-3xl p-4 shadow-2xl overflow-hidden">
+      <button onclick="closeLightbox()" class="absolute top-4 right-4 bg-slate-900/60 hover:bg-slate-900 text-white p-2 rounded-full transition z-10">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div class="p-2 text-center">
+        <img id="lightbox-img" src="" alt="Payment Proof" class="max-h-[80vh] mx-auto object-contain rounded-xl">
+        <div class="mt-3 flex items-center justify-center gap-3">
+          <a id="lightbox-download" href="#" target="_blank" download class="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Open Full Image In New Tab
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      token: localStorage.getItem('lucky_token') || null,
+      adminUser: null,
+      submissions: [],
+      stats: {},
+      settings: {},
+      winners: []
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      await checkAdminAuth();
+    });
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-red-600' : 'bg-slate-800');
+      toast.className = `${bg} text-white text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl shadow-lg pointer-events-auto flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    async function checkAdminAuth() {
+      if (!state.token) {
+        showLoginView();
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user && data.user.is_admin) {
+            state.adminUser = data.user;
+            showDashboardView();
+            await loadAdminData();
+          } else {
+            showToast("Access denied: You are not an administrator.", "error");
+            showLoginView();
+          }
+        } else {
+          showLoginView();
+        }
+      } catch (err) {
+        showLoginView();
+      }
+    }
+
+    function showLoginView() {
+      document.getElementById('admin-login-view').classList.remove('hidden');
+      document.getElementById('admin-dashboard-view').classList.add('hidden');
+      document.getElementById('admin-user-info').innerHTML = '';
+      lucide.createIcons();
+    }
+
+    function showDashboardView() {
+      document.getElementById('admin-login-view').classList.add('hidden');
+      document.getElementById('admin-dashboard-view').classList.remove('hidden');
+      document.getElementById('admin-user-info').innerHTML = `
+        <div class="flex items-center gap-2 text-xs">
+          <span class="font-bold text-amber-400">${state.adminUser.full_name}</span>
+          <button onclick="handleAdminLogout()" class="p-1.5 text-slate-400 hover:text-red-400 rounded transition" title="Logout">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('admin-phone').value.trim();
+      const password = document.getElementById('admin-pass').value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (!data.user.is_admin) {
+            showToast("This account does not have admin permissions.", "error");
+            return;
+          }
+          localStorage.setItem('lucky_token', data.token);
+          state.token = data.token;
+          state.adminUser = data.user;
+          showDashboardView();
+          await loadAdminData();
+          showToast("Signed in to Admin Dashboard!");
+        } else {
+          showToast(data.detail || "Authentication failed.", "error");
+        }
+      } catch (err) {
+        showToast("Server connection error.", "error");
+      }
+    }
+
+    function handleAdminLogout() {
+      localStorage.removeItem('lucky_token');
+      state.token = null;
+      state.adminUser = null;
+      showLoginView();
+      showToast("Logged out from admin.");
+    }
+
+    async function loadAdminData() {
+      try {
+        const resStats = await fetch('/api/admin/dashboard', {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (resStats.ok) {
+          const d = await resStats.json();
+          state.stats = d.stats;
+          state.settings = d.settings;
+          state.winners = d.winners || [];
+          renderStats();
+          renderWinnersBox();
+          populateSettingsForm();
+        }
+
+        const resSub = await fetch('/api/admin/submissions', {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (resSub.ok) {
+          const d = await resSub.json();
+          state.submissions = d.submissions || [];
+          renderSubmissionsTable();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderStats() {
+      const s = state.stats;
+      document.getElementById('kpi-available').textContent = s.available;
+      document.getElementById('kpi-pending').textContent = s.pending;
+      document.getElementById('kpi-approved').textContent = s.approved;
+      document.getElementById('kpi-revenue').textContent = `${s.approved_revenue} ETB`;
+      document.getElementById('kpi-users').textContent = s.total_users;
+      document.getElementById('tab-pending-badge').textContent = s.pending;
+    }
+
+    function renderWinnersBox() {
+      const box = document.getElementById('admin-winners-box');
+      if (!state.winners || state.winners.length === 0) {
+        box.innerHTML = `
+          <div class="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 text-center text-xs text-slate-300">
+            No draw conducted yet. Click <strong>"Run Lucky Draw Now"</strong> above once participants have reserved tickets, or wait until all 200 numbers are filled!
+          </div>
+        `;
+        return;
+      }
+
+      box.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          ${state.winners.map(w => {
+            let medal = "🥇";
+            let label = "1st Place (5,000 ETB)";
+            let border = "border-amber-400";
+            if (w.rank === 2) {
+              medal = "🥈";
+              label = "2nd Place (3,000 ETB)";
+              border = "border-slate-400";
+            } else if (w.rank === 3) {
+              medal = "🥉";
+              label = "3rd Place (2,000 ETB)";
+              border = "border-orange-400";
+            }
+            return `
+              <div class="p-4 rounded-2xl bg-slate-800/90 border ${border} text-center space-y-2">
+                <div class="text-xl">${medal}</div>
+                <div class="text-xs font-bold text-amber-300 uppercase">${label}</div>
+                <div class="text-2xl font-black font-mono text-white">#${w.number}</div>
+                <div class="text-xs text-slate-200 font-semibold">${w.user_name || 'N/A'}</div>
+                <div class="text-[11px] text-slate-400 font-mono">${w.user_phone || ''}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    async function handleTriggerDraw() {
+      if (!confirm("Are you sure you want to trigger the Lucky Draw now? 3 random winners will be chosen for 5,000, 3,000, and 2,000 ETB!")) return;
+
+      try {
+        const res = await fetch('/api/admin/draw', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+          showToast("Grand Draw complete! 3 Winners have been selected!");
+          await loadAdminData();
+        } else {
+          showToast(data.detail || "Draw could not be conducted.", "error");
+        }
+      } catch (err) {
+        showToast("Error conducting draw.", "error");
+      }
+    }
+
+    async function handleResetDraw() {
+      if (!confirm("Are you sure you want to RESET the draw? Current winners will be cleared so you can re-draw.")) return;
+
+      try {
+        const res = await fetch('/api/admin/reset-draw', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast("Winners reset successfully.");
+          await loadAdminData();
+        } else {
+          showToast(data.detail || "Failed to reset draw.", "error");
+        }
+      } catch (err) {
+        showToast("Error resetting draw.", "error");
+      }
+    }
+
+    function renderSubmissionsTable() {
+      const tbody = document.getElementById('submissions-tbody');
+      tbody.innerHTML = '';
+
+      if (state.submissions.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center py-10 text-slate-400">
+              No submissions yet. Once participants reserve numbers, they will appear here.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      state.submissions.forEach(sub => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+
+        const isPending = sub.status === 'pending';
+        const statusBadge = isPending 
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Pending Review</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Approved ✅</span>`;
+
+        const receiptCell = sub.receipt_filename ? `
+          <button onclick="openLightbox('/uploads/${sub.receipt_filename}')" class="text-purple-600 hover:text-purple-800 font-bold flex items-center gap-1">
+            <i data-lucide="image" class="w-3.5 h-3.5"></i> View Proof
+          </button>
+        ` : `<span class="text-slate-400 italic">No File</span>`;
+
+        const actionBtns = isPending ? `
+          <div class="flex items-center justify-end gap-1.5">
+            <button onclick="handleApprove(${sub.number})" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm flex items-center gap-1 transition">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i> Approve
+            </button>
+            <button onclick="handleReject(${sub.number})" class="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold rounded-lg transition flex items-center gap-1">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i> Reject
+            </button>
+          </div>
+        ` : `
+          <div class="flex items-center justify-end">
+            <button onclick="handleReject(${sub.number})" class="text-slate-400 hover:text-red-600 p-1 rounded" title="Revoke & Make Available">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+
+        tr.innerHTML = `
+          <td class="py-3 px-4">
+            <span class="font-black font-mono text-sm bg-slate-100 px-2 py-1 rounded-lg text-slate-900">#${sub.number}</span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="font-bold text-slate-800 block">${sub.user_name || 'N/A'}</span>
+            <span class="text-slate-400 font-mono text-[11px]">${sub.user_phone || 'N/A'}</span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="font-semibold text-slate-700">${sub.payment_method || 'CBE'}</span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="font-mono font-bold text-slate-800 select-all">${sub.txn_ref || 'N/A'}</span>
+          </td>
+          <td class="py-3 px-4">
+            ${receiptCell}
+          </td>
+          <td class="py-3 px-4 text-slate-500 text-[11px]">
+            ${sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : 'N/A'}
+          </td>
+          <td class="py-3 px-4">
+            ${statusBadge}
+          </td>
+          <td class="py-3 px-4 text-right">
+            ${actionBtns}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    async function handleApprove(number) {
+      if (!confirm(`Are you sure you want to approve ticket #${number}?`)) return;
+      try {
+        const res = await fetch(`/api/admin/approve/${number}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`Number #${number} approved!`);
+          if (data.has_drawn_winners) {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            showToast("🎉 All 200 numbers filled! Winners have been automatically drawn!", "success");
+          }
+          await loadAdminData();
+        } else {
+          showToast(data.detail || "Approval failed.", "error");
+        }
+      } catch (err) {
+        showToast("Error processing approval.", "error");
+      }
+    }
+
+    async function handleReject(number) {
+      if (!confirm(`Are you sure you want to REJECT and release ticket #${number} back to the pool?`)) return;
+      try {
+        const res = await fetch(`/api/admin/reject/${number}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`Number #${number} rejected and returned to available pool.`);
+          await loadAdminData();
+        } else {
+          showToast(data.detail || "Rejection failed.", "error");
+        }
+      } catch (err) {
+        showToast("Error processing rejection.", "error");
+      }
+    }
+
+    // Lightbox
+    function openLightbox(url) {
+      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox-download').href = url;
+      document.getElementById('lightbox-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox-modal').classList.add('hidden');
+    }
+
+    // Tabs
+    function switchTab(tab) {
+      if (tab === 'pending') {
+        document.getElementById('view-submissions').classList.remove('hidden');
+        document.getElementById('view-settings').classList.add('hidden');
+        document.getElementById('tab-btn-pending').className = "px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white transition flex items-center gap-2";
+        document.getElementById('tab-btn-settings').className = "px-4 py-2 text-xs font-bold rounded-xl bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 transition flex items-center gap-2";
+      } else {
+        document.getElementById('view-submissions').classList.add('hidden');
+        document.getElementById('view-settings').classList.remove('hidden');
+        document.getElementById('tab-btn-settings').className = "px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white transition flex items-center gap-2";
+        document.getElementById('tab-btn-pending').className = "px-4 py-2 text-xs font-bold rounded-xl bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 transition flex items-center gap-2";
+      }
+      lucide.createIcons();
+    }
+
+    function populateSettingsForm() {
+      const s = state.settings;
+      if (s.deadline) {
+        try {
+          const dt = new Date(s.deadline);
+          const str = dt.toISOString().slice(0, 16);
+          document.getElementById('set-deadline').value = str;
+        } catch (e) {}
+      }
+      document.getElementById('set-cbe').value = s.cbe_account || '1000607576584';
+      document.getElementById('set-telebirr').value = s.telebirr_phone || '0906619022';
+      document.getElementById('set-cash-name').value = s.cash_contact_name || 'Tegegn Wukianos';
+      document.getElementById('set-cash-phone').value = s.cash_contact_phone || '0952458502';
+      document.getElementById('set-price').value = s.price_amount || '100.05';
+    }
+
+    async function handleSaveSettings(e) {
+      e.preventDefault();
+      const deadlineVal = document.getElementById('set-deadline').value;
+      const cbe_account = document.getElementById('set-cbe').value.trim();
+      const telebirr_phone = document.getElementById('set-telebirr').value.trim();
+      const cash_contact_name = document.getElementById('set-cash-name').value.trim();
+      const cash_contact_phone = document.getElementById('set-cash-phone').value.trim();
+      const price_amount = document.getElementById('set-price').value.trim();
+
+      const payload = {
+        cbe_account,
+        telebirr_phone,
+        cash_contact_name,
+        cash_contact_phone,
+        price_amount
+      };
+      if (deadlineVal) {
+        payload.deadline = new Date(deadlineVal).toISOString();
+      }
+
+      try {
+        const res = await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast("Settings updated successfully!");
+          await loadAdminData();
+        } else {
+          showToast("Failed to update settings.", "error");
+        }
+      } catch (err) {
+        showToast("Error updating settings.", "error");
+      }
+    }
+  </script>
+</body>
+</html>
