@@ -62,4 +62,4 @@ py run.py
 
 ### 3. Default Admin Credentials
 - **Phone**: `0906619022`
-- **Password**: `admin123`
+- **Password**: `''\'''`
